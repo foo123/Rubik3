@@ -6,6 +6,9 @@ Rubik3
 
 __Intuitive 3D Rubik Cube with Three.js__
 
+
+![Rubik3 with Three.js](rubik3.jpg)
+
 [![Rubik3](/assets/rubik3.png)](http://foo123.github.com/examples/rubik3/)
 
 ###Live Example

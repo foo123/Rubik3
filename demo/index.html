@@ -1,0 +1,234 @@
+<!doctype html>
+<!--[if lt IE 7]>
+<html lang="en" class="ie lt-ie9 lt-ie8 lt-ie7">
+<![endif]-->
+<!--[if IE 7]>
+<html lang="en" class="ie lt-ie9 lt-ie8">
+<![endif]-->
+<!--[if IE 8]>
+<html lang="en" class="ie lt-ie9">
+<![endif]-->
+<!--[if gt IE 8]><!-->
+<html lang="en" class="no-ie">
+<!--<![endif]-->
+<head>
+<title>Intuitive Rubik Cube with Three.js</title>
+
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="keywords" content="Rubik Cube 3D three.js" />
+<meta name="description" content="Intuitive Rubik Cube with Three.js" />
+<meta property="og:title" content="3D Rubik Cube">
+<meta property="og:description" content="Intuitive Rubik Cube with Three.js">
+<meta property="og:image" content="https://foo123.github.io/thumbs/rubik3.jpg">
+<meta property="og:url" content="https://foo123.github.io/examples/rubik3/">
+<meta name="twitter:card" content="summary">
+
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="./android-chrome-192x192.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png?v=2">
+<link rel="manifest" href="./site.webmanifest?v=2">
+<link rel="mask-icon" href="./safari-pinned-tab.svg?v=2" color="#323232">
+<link rel="shortcut icon" href="./favicon.ico?v=2">
+<meta name="apple-mobile-web-app-title" content="Rubik3">
+<meta name="application-name" content="Rubik3">
+<meta name="msapplication-TileColor" content="#323232">
+<meta name="msapplication-config" content="./browserconfig.xml?v=2">
+<meta name="theme-color" content="#323232">
+
+
+
+<link rel="stylesheet" type="text/css" href="./common.min.css" />
+
+<style type="text/css">
+body {
+    font-family: Monospace;
+    background: #121212;
+    padding:0;
+    position:relative;
+    color:#aaa;
+    overflow-y: scroll;
+}
+#container {
+    position: relative;
+    margin: 0 auto;
+    padding: 0;
+    border: 0;
+    z-index: 0;
+    cursor: pointer;
+    background-color: #121212; /*url('assets/back.png') no-repeat 50% 50%;*/
+    background-image: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0.25) 5%, rgba(255,255,255,0) 50%);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 100% auto;
+}
+#flatimage { 
+    position: absolute;
+    z-index: 10;
+    top: 50px;
+    right: 5px;
+}
+/*.color-class
+{
+    position:relative;
+    margin-bottom:10px;
+    margin-left:10px;
+    cursor:pointer;
+    float:left
+}
+.colorSelector {
+    width: 36px;
+    height: 36px;
+    background-image: url(assets/select.png);
+}
+.colorSelector div {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 30px;
+    height: 30px;
+    background-image: url(assets/select.png);
+    background-position:center center;
+}*/
+.button {
+    -moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
+    -webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
+    box-shadow:inset 0px 1px 0px 0px #ffffff;
+    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #ededed), color-stop(1, #dfdfdf) );
+    background:-moz-linear-gradient( center top, #ededed 5%, #dfdfdf 100% );
+    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ededed', endColorstr='#dfdfdf');
+    background-color:#ededed;
+    -webkit-border-top-left-radius:20px;
+    -moz-border-radius-topleft:20px;
+    border-top-left-radius:20px;
+    -webkit-border-top-right-radius:20px;
+    -moz-border-radius-topright:20px;
+    border-top-right-radius:20px;
+    -webkit-border-bottom-right-radius:20px;
+    -moz-border-radius-bottomright:20px;
+    border-bottom-right-radius:20px;
+    -webkit-border-bottom-left-radius:20px;
+    -moz-border-radius-bottomleft:20px;
+    border-bottom-left-radius:20px;
+    text-indent:0;
+    border:1px solid #dcdcdc;
+    display:inline-block;
+    color:#777777;
+    font-family:Arial;
+    font-size:15px;
+    font-weight:bold;
+    font-style:normal;
+    height:50px;
+    line-height:50px;
+    width:86px;
+    text-decoration:none;
+    text-align:center;
+    text-shadow:1px 1px 0px #ffffff;
+    outline: none !important;
+}
+.button:hover {
+    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #dfdfdf), color-stop(1, #ededed) );
+    background:-moz-linear-gradient( center top, #dfdfdf 5%, #ededed 100% );
+    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#dfdfdf', endColorstr='#ededed');
+    background-color:#dfdfdf;
+}.button:active {
+    position:relative;
+    top:1px;
+}
+.button {
+    width:120px;
+    height:30px;
+    line-height:30px;
+    cursor:pointer;
+    position:relative;
+    display:inline-block;
+    margin: 3px;
+}
+#controls select {
+    margin: 3px;
+    font-size: 16px;
+    padding: 5px;
+    color: #121212;
+}
+#forkongithub a, #forkongithub a:hover{background:#fd0002;color:#fff;}
+#footer {
+    z-index: 100;
+    position:relative;
+    margin-top: 20px;
+}
+@media (max-width:800px){
+#controls select {
+    font-size: 13px;
+    padding: 3px;
+    margin: 3px 2px;
+}
+#controls .button {
+    width: 80px;
+    height: 25px;
+    font-size: 11px;
+    line-height: 25px;
+    margin: 3px 2px;
+}
+}
+</style>
+<script type="text/javascript" src="./three.js"></script>
+<script type="text/javascript" src="./Tween.js"></script>
+<script type="text/javascript" src="../src/Rubik.js"></script>
+<script type="text/javascript" src="./RubikApplication.js"></script>
+</head>
+<body class="responsive-864-container" style="max-width:2000px; overflow-x:hidden; margin:0 auto;">
+    <span id="forkongithub"><a href="https://github.com/foo123/Rubik3">Twist me on GitHub</a></span>
+    
+<!--    Rubik Cube Viewer (and future Solver) implementation in HTML 5 canvas, Javascript Three.js 3D Library
+        
+        Based on previous implementation of Rubik Cube Viewer and Solver in Actionscript 3 with PaperVision3D 2
+        https://github.com/foo123/Rubik3
+        
+        @Author Nikos M. [https://foo123.github.io/]
+        
+        Free to use, modify, distribute, make the world a better place
+        A link back to author is appreciated
+-->
+<div id='controls' class="fluid col-1-1" style="margin-top:8px;">
+    <select size="1" id="rubik-type">
+        <option value="2">2x2x2</option>    
+        <option value="3" selected="selected">3x3x3</option>
+        <option value="4">4x4x4</option>
+    </select>
+    
+    <button class="button" id="newrubik">New Cube</button>
+    <button class="button" id="scramble">Scramble</button>
+    <button class="button" id="undo">Undo</button>
+    
+    <p style="margin-top: 8px">Click or touch and drag on background to rotate cube. Drag row or column to rotate sides</p>
+    
+    <div class="fluid col-1-1" style="margin-top: 0px;">
+    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DP8WED9XW9TAE" class="donate">donate</a>
+    </div>
+    
+    <!--<div id='colors' style="position:relative;">
+        <div class='color-class colorSelector'><div id='cstop1'></div></div>
+        <div class='color-class colorSelector'><div id='csbottom1'></div></div>
+        <div class='color-class colorSelector'><div id='csleft1'></div></div>
+        <div style="float:none;clear:both"></div>
+        <div class='color-class colorSelector'><div id='csright1'></div></div>
+        <div class='color-class colorSelector'><div id='csfront1'></div></div>
+        <div class='color-class colorSelector'><div id='csback1'></div></div>
+        <div style="float:none;clear:both"></div>
+        
+        <br /><br />
+        
+        <div class='color-class colorSelector'><div id='csinside1'></div></div>
+        <div style="float:none;clear:both"></div>
+    </div>-->
+</div>
+
+<div id="container"><div id="flatimage"></div></div>
+
+<script type="text/javascript">//<![CDATA[
+RubikApplication.init();
+//]]></script>
+</body>
+</html>

@@ -1,20 +1,13 @@
 Rubik3
 ======
 
-### Further development on this project has stopped!!
+**Intuitive 3D Rubik Cube for Desktop and Mobile with `Three.js`**
 
 
-__Intuitive 3D Rubik Cube with Three.js__
+![Rubik3](rubik3.jpg)
 
+[![Rubik3 with Three.js Application](/screenshot.png)](https://foo123.github.com/examples/rubik3/)
 
-![Rubik3 with Three.js](rubik3.jpg)
-
-[![Rubik3](/assets/rubik3.png)](https://foo123.github.com/examples/rubik3/)
 
 ### Live Example
 * [3D Rubik](https://foo123.github.com/examples/rubik3/)
-
-<!--
-*URL* [Nikos Web Development](http://nikos-web-development.netai.net/ "Nikos Web Development")  
-*URL* [WorkingClassCode](http://workingclasscode.uphero.com/ "Working Class Code")  
--->

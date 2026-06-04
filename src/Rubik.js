@@ -1,18 +1,18 @@
-﻿/**
+/**
 *   Rubik3
-*   An intuitive rubik cube class based on Three.js
+*   An intuitive 3D Rubik Cube based on Three.js
 *
 *   https://github.com/foo123/Rubik3
 **/
-(function(window, undef){
+(function(window, undef) {
 
 // utils
-var
+var stdMath = Math,
     hasKey = Object.prototype.hasOwnProperty,
 
     Merge = function(o1, o2) {
         o1 = o1 || {};
-        for (var p in o2) if (hasKey.call(o2, p))  o1[p] = o2[p];
+        for (var p in o2) if (hasKey.call(o2, p)) o1[p] = o2[p];
         return o1;
     },
 
@@ -27,7 +27,7 @@ var
         return C;
     },
 
-    Round = Math.round, Abs = Math.abs, rnd = Math.random,
+    Round = stdMath.round, Abs = stdMath.abs, rnd = stdMath.random,
 
     eq = function(a ,b) {
         var delta = 1e-10;
@@ -99,9 +99,9 @@ var Rubik = Extends(THREE.Object3D, {
             }
         ;
 
-        if (null !== sidep && sidep > 0) side = sidep;
-        if (null !==Np && Np > 0) N = parseInt(Np);
-        if (null !== dspp && dspp > 0) dsp = dspp;
+        if (null != sidep && sidep > 0) side = sidep;
+        if (null != Np && Np > 0) N = parseInt(Np);
+        if (null != dspp && dspp > 0) dsp = dspp;
         if (colorsp) colors = colorsp;
 
         var cubelets = [],
@@ -119,14 +119,14 @@ var Rubik = Extends(THREE.Object3D, {
         ;
 
         // build cubelets
-        for (zz=0; zz<Nz; zz++)
+        for (zz=0; zz<Nz; ++zz)
         {
-            for (xx=0; xx<Nx; xx++)
+            for (xx=0; xx<Nx; ++xx)
             {
-                for (yy=0; yy<Ny; yy++)
+                for (yy=0; yy<Ny; ++yy)
                 {
                     materials = [];
-                    for (mii=0; mii<6; mii++)
+                    for (mii=0; mii<6; ++mii)
                     {
                         mat = new THREE.MeshBasicMaterial({color: colors.inside});
                         mat.name = 'inside';
@@ -215,27 +215,29 @@ var Rubik = Extends(THREE.Object3D, {
     sides : null,
 
     addHistory: function(actionobj) {
-        if (!this.undo_in_action)
+        var self = this;
+        if (!self.undo_in_action)
         {
-            while (this.undolist.length >= this.undolist_length) this.undolist.shift();
-            this.undolist.push(actionobj);
+            while (self.undolist.length >= self.undolist_length) self.undolist.shift();
+            self.undolist.push(actionobj);
         }
-        return this;
+        return self;
     },
 
     undo: function() {
+        var self = this;
         var undoaction = null;
-        if (!this.rotation_in_progress)
+        if (!self.rotation_in_progress)
         {
-            if (this.undolist.length > 0)
+            if (self.undolist.length > 0)
             {
-                this.undo_in_action = true;
-                undoaction = this.undolist.pop();
+                self.undo_in_action = true;
+                undoaction = self.undolist.pop();
                 if (undoaction.param)
-                    undoaction.func.call(this, undoaction.param);
+                    undoaction.func.call(self, undoaction.param);
                 else
-                    undoaction.func.call(this);
-                this.undo_in_action = false;
+                    undoaction.func.call(self);
+                self.undo_in_action = false;
                 return undoaction.actiontype;
             }
         }
@@ -243,7 +245,8 @@ var Rubik = Extends(THREE.Object3D, {
     },
 
     setRotation: function(params) {
-        if (!this.rubik || this.rotation_in_progress) return this;
+        var self = this;
+        if (!self.rubik || self.rotation_in_progress) return self;
 
         var axis = params.axis,
             angle = params.angle,
@@ -251,20 +254,20 @@ var Rubik = Extends(THREE.Object3D, {
             ind, rangle
         ;
 
-        if (0 == angle) return this;
+        if (0 == angle) return self;
 
-        ind = this.getCubeletsIndex(axis, row);
+        ind = self.getCubeletsIndex(axis, row);
 
-        if (null == ind) return this;
+        if (null == ind) return self;
 
-        rangle = angle * this.RA;
+        rangle = angle * self.RA;
 
         axis = axis.charAt(0);
         axis = axis.toLowerCase();
 
         var m = new THREE.Matrix4();
 
-        switch(axis)
+        switch (axis)
         {
             case "x":
                     m.setRotationX(rangle);
@@ -276,12 +279,12 @@ var Rubik = Extends(THREE.Object3D, {
             case "z":
                     m.setRotationZ(rangle);
                     break;
-            default: return; break;
+            default: return self; break;
         }
 
-        for (var k=0; k<ind.length; k++)
+        for (var k=0; k<ind.length; ++k)
         {
-            var target = this.rubik.cubelets[ind[k]];
+            var target = self.rubik.cubelets[ind[k]];
             target.matrixAutoUpdate = false;
             target.matrix.multiply(m, target.matrix);
             //target.position = target.matrix.getPosition();
@@ -289,20 +292,102 @@ var Rubik = Extends(THREE.Object3D, {
             //target.updateMatrixWorld(true);
         }
         params.angle = -angle;
-        params.duration = 2;
+        params.duration = 1;
 
-        this.addHistory({func: this.rotate, param: params, actiontype: "setRotation"});
+        self.addHistory({func: self.rotate, param: params, actiontype: "setRotation"});
 
-        if (this.onChange) this.onChange.call(this);
-        return this;
+        if (self.onChange) self.onChange.call(self);
+        return self;
+    },
+
+    rotate: function(params) {
+        var self = this;
+        if (!self.rubik) return self;
+        if (self.rotation_in_progress) return self;
+
+        var duration = 1,
+            axis = params.axis,
+            row = params.row,
+            angle, ind, k, l
+        ;
+        if (null != params.duration) duration = params.duration;
+        angle = params.angle;
+        axis = axis.charAt(0);
+        axis = axis.toLowerCase();
+
+        if (0 == angle) return self;
+
+        if (Rubik.Tween)
+        {
+            if (duration <= 0) return self;
+            ind = self.getCubeletsIndex(axis, row);
+            if (null == ind) return self;
+
+            var count = self.rubik.N * self.rubik.N, completed = 0, rangle = angle*self.RA;
+            duration = stdMath.abs(angle)*duration*1000;
+
+            self.rotation_in_progress = true;
+
+            for (k=0,l=ind.length; k<l; ++k)
+            {
+                Rubik.Tween({
+                    cubelet: self.rubik.cubelets[ind[k]],
+                    axis: axis,
+                    angle: 0,
+                    prevangle: 0
+                }, 60).animate('angle', {from:0, to:rangle}, duration, 0, 'ease-in-out-expo', {
+                onProgress: function(obj) {
+                    var m = new THREE.Matrix4(), a = obj.angle-obj.prevangle;
+                    obj.prevangle = obj.angle;
+                    switch (obj.axis)
+                    {
+                        case "x":
+                                m.setRotationX(a);
+                                break;
+                        case "y":
+                                m.setRotationY(a);
+                                break;
+                        case "z":
+                                m.setRotationZ(a);
+                                break;
+                        default: return; break;
+                    }
+                    obj.cubelet.matrixAutoUpdate = false;
+                    obj.cubelet.matrix.multiply(m, obj.cubelet.matrix);
+                    obj.cubelet.position = obj.cubelet.matrix.getPosition();
+                    obj.cubelet.matrixWorldNeedsUpdate = true;
+                },
+                onEnd: function(obj, tween) {
+                    ++completed;
+                    tween.dispose();
+                    if (completed >= count)
+                    {
+                        self.rotation_in_progress = false;
+                        if (params.onComplete) params.onComplete.call(self);
+                        if (self.onChange)     self.onChange.call(self);
+                    }
+                }
+                }).start();
+            }
+
+            params.angle = -angle;
+            //params.onComplete = null;
+            self.addHistory({func: self.rotate, param: params, actiontype: "rotate"});
+        }
+        else
+        {
+            self.setRotation({axis: axis, row: row, angle: angle});
+        }
+        return self;
     },
 
     scramble: function(nsteps) {
-        if (this.rotation_in_progress) return this;
+        var self = this;
+        if (self.rotation_in_progress) return self;
 
         var axes = ["x", "y", "z"],
             angles = [-2, -1, 1, 2],
-            N = this.rubik.N,
+            N = self.rubik.N,
             k = 0,
             axis, row, angle
         ;
@@ -310,113 +395,141 @@ var Rubik = Extends(THREE.Object3D, {
         if (null == nsteps || nsteps <= 0)
             nsteps = intRandRange(5, 20);
 
-        for (k=0; k<nsteps; k++)
+        for (k=0; k<nsteps; ++k)
         {
             axis = axes[intRandRange(0, 2)];
             row = intRandRange(0, N-1);
             angle = angles[intRandRange(0, 3)];
-            this.setRotation({axis: axis, row: row, angle: angle});
+            self.setRotation({axis: axis, row: row, angle: angle});
         }
-        return this;
+        return self;
     },
 
-    rotate: function(params) {
-        if (!this.rubik) return this;
-        if (this.rotation_in_progress) return this;
+    setRubikColors: function(params) {
+        var self = this;
+        if (!self.rubik) return;
+        if (self.rotation_in_progress) return;
 
-        var duration = 5,
-            axis = params.axis,
-            row = params.row,
-            angle, ind
+        var colorsobj = params.colors,
+            faces = null, i, j,
+            cclone = {
+                front: self.rubik.colors.front,
+                back: self.rubik.colors.back,
+                top: self.rubik.colors.top,
+                bottom: self.rubik.colors.bottom,
+                left: self.rubik.colors.left,
+                right: self.rubik.colors.right,
+                inside: self.rubik.colors.inside
+            },
+            cclone2 = {
+                front: self.rubik.colors.front,
+                back: self.rubik.colors.back,
+                top: self.rubik.colors.top,
+                bottom: self.rubik.colors.bottom,
+                left: self.rubik.colors.left,
+                right: self.rubik.colors.right,
+                inside: self.rubik.colors.inside
+            },
+            n, m, allow = true
         ;
-        if (null != params.duration) duration = params.duration;
-        angle = params.angle;
 
-        if (duration <= 0) return this;
-        if (0 == angle) return this;
+        // don't allow 2 identical colors on different faces
+        for (n in colorsobj)
+            cclone2[n] = colorsobj[n];
 
-        ind = this.getCubeletsIndex(axis, row);
-        if (null == ind) return this;
-
-        axis = axis.charAt(0);
-        axis = axis.toLowerCase();
-
-        var tthis = this,
-            obj, tweenDuration, tweenAngle,
-            count = this.rubik.N * this.rubik.N,
-            onemore = 0
-        ;
-
-        var onComplete = function(g) {
-            onemore++;
-            if (onemore >= count)
-            {
-                this.thiss.rotation_in_progress = false;
-                onemore = 0;
-
-                if (this.params.onComplete) this.params.onComplete.call(this.thiss);
-                if (this.thiss.onChange)    this.thiss.onChange.call(this.thiss);
-            }
-        };
-
-        var onChange = function() {
-            var m = new THREE.Matrix4();
-
-            switch (this.axis)
-            {
-                case "x":
-                        m.setRotationX(this.angle-this.prevangle);
-                        break;
-                case "y":
-                        m.setRotationY(this.angle-this.prevangle);
-                        break;
-                case "z":
-                        m.setRotationZ(this.angle-this.prevangle);
-                        break;
-                default: return; break;
-            }
-            this.cubelet.matrixAutoUpdate = false;
-            this.cubelet.matrix.multiply(m, this.cubelet.matrix);
-            this.cubelet.position = this.cubelet.matrix.getPosition();
-            this.cubelet.matrixWorldNeedsUpdate = true;
-            this.prevangle = this.angle;
-        };
-
-        this.rotation_in_progress = true;
-
-        tweenDuration = Math.abs(angle) * duration * 1000;
-        tweenAngle = angle * this.RA;
-
-        for (var k=0; k<ind.length; k++)
+        for (n in cclone2)
         {
-            obj = {
-                cubelet: this.rubik.cubelets[ind[k]],
-                axis: axis,
-                angle: 0,
-                prevangle: 0,
-                thiss: this,
-                params: params
-            };
-            new TWEEN.Tween(obj)
-                .onUpdate(onChange)
-                .onComplete(onComplete)
-                .to({angle: tweenAngle}, tweenDuration)
-                .easing(TWEEN.Easing.Exponential.EaseInOut)
-                .start();
+            for (m in cclone2)
+            {
+                if (cclone2[n] === cclone2[m] && n !== m)
+                {
+                    allow = false;
+                    return false;
+                    //break;
+                }
+            }
         }
-        params.angle = -angle;
-        //params.onComplete=null;
-        this.addHistory({func: this.rotate, param: params, actiontype: "rotate"});
-        return this;
+
+        //if (!allow) return false;
+
+        if (colorsobj != null)
+        {
+            for (i=0; i<self.rubik.cubelets.length; ++i)
+            {
+                if (colorsobj.top != null)
+                {
+                    faces = self.getFacesByColor(self.rubik.cubelets[i], cclone.top);
+                    for (j=0; j<faces.length; ++j)
+                        if (faces[j].name !== "inside")
+                            faces[j].color.setHex(colorsobj.top);
+                    self.rubik.colors.top = colorsobj.top;
+                }
+                if (colorsobj.bottom != null)
+                {
+                    faces = self.getFacesByColor(self.rubik.cubelets[i], cclone.bottom);
+                    for (j=0; j<faces.length; ++j)
+                        if (faces[j].name !== "inside")
+                            faces[j].color.setHex(colorsobj.bottom);
+                    self.rubik.colors.bottom = colorsobj.bottom;
+                }
+                if (colorsobj.left != null)
+                {
+                    faces = self.getFacesByColor(self.rubik.cubelets[i], cclone.left);
+                    for (j=0; j<faces.length; ++j)
+                        if (faces[j].name !== "inside")
+                            faces[j].color.setHex(colorsobj.left);
+                    self.rubik.colors.left = colorsobj.left;
+                }
+                if (colorsobj.right != null)
+                {
+                    faces = self.getFacesByColor(self.rubik.cubelets[i], cclone.right);
+                    for (j=0; j<faces.length; ++j)
+                        if (faces[j].name !== "inside")
+                            faces[j].color.setHex(colorsobj.right);
+                    self.rubik.colors.right = colorsobj.right;
+                }
+                if (colorsobj.front != null)
+                {
+                    faces = self.getFacesByColor(self.rubik.cubelets[i], cclone.front);
+                    for (j=0; j<faces.length; ++j)
+                        if (faces[j].name !== "inside")
+                            faces[j].color.setHex(colorsobj.front);
+                    self.rubik.colors.front = colorsobj.front;
+                }
+                if (colorsobj.back != null)
+                {
+                    faces = self.getFacesByColor(self.rubik.cubelets[i], cclone.back);
+                    for (j=0; j<faces.length; ++j)
+                        if (faces[j].name !== "inside")
+                            faces[j].color.setHex(colorsobj.back);
+                    self.rubik.colors.back = colorsobj.back;
+                }
+                if (colorsobj.inside != null)
+                {
+                    faces = self.getFacesByName(self.rubik.cubelets[i], "inside"); // this take by name so to avoid mixed ups
+                    for (j=0; j<faces.length; ++j)
+                        faces[j].color.setHex(colorsobj.inside);
+                    self.rubik.colors.inside = colorsobj.inside;
+                }
+            }
+
+            params.colors = cclone;
+            self.addHistory({func:self.setRubikColors, param:params, actiontype:"setRubikColors"});
+
+            if (self.onChange) self.onChange.call(self);
+
+            return true;
+        }
     },
 
     getCubeletSeenCoords: function(cubelet) {
-        if (!this.rubik || this.rotation_in_progress) return null;
+        var self = this;
+        if (!self.rubik || self.rotation_in_progress) return null;
 
         var c;
 
         if (cubelet instanceof THREE.Mesh) c = cubelet;
-        else  c = this.rubik.cubelets[cubelet || 0];
+        else c = self.rubik.cubelets[cubelet || 0];
 
         if (null == c) return null;
 
@@ -424,57 +537,59 @@ var Rubik = Extends(THREE.Object3D, {
         c.updateMatrixWorld(true);
         c.position = c.matrix.getPosition();
         return {
-            xx: Round((c.position.x + this.rubik.side / 2 - this.rubik.cubeletside / 2) / (this.rubik.cubeletside * (1+this.rubik.dsp))),
-            yy: Round((c.position.y + this.rubik.side / 2 - this.rubik.cubeletside / 2) / (this.rubik.cubeletside * (1+this.rubik.dsp))),
-            zz: Round((c.position.z + this.rubik.side / 2 - this.rubik.cubeletside / 2) / (this.rubik.cubeletside * (1+this.rubik.dsp)))
+            xx: Round((c.position.x + self.rubik.side / 2 - self.rubik.cubeletside / 2) / (self.rubik.cubeletside * (1+self.rubik.dsp))),
+            yy: Round((c.position.y + self.rubik.side / 2 - self.rubik.cubeletside / 2) / (self.rubik.cubeletside * (1+self.rubik.dsp))),
+            zz: Round((c.position.z + self.rubik.side / 2 - self.rubik.cubeletside / 2) / (self.rubik.cubeletside * (1+self.rubik.dsp)))
         };
     },
 
     getCubeletsIndex: function(axis, row) {
-        if (!this.rubik) return [];
-        if (this.rotation_in_progress) return [];
+        var self = this;
+        if (!self.rubik) return [];
+        if (self.rotation_in_progress) return [];
 
-        var a, result, i, l = this.rubik.cubelets.length;
+        var a, result, i, l = self.rubik.cubelets.length;
 
-        if (row < 0 || row >= this.rubik.N) return [];
+        if (row < 0 || row >= self.rubik.N) return [];
 
         axis = axis.charAt(0).toLowerCase();
 
-        a = new Array(l); result = new Array(this.rubik.N*this.rubik.N);
-        for (i=0; i<l; i++)
+        a = new Array(l); result = new Array(self.rubik.N*self.rubik.N);
+        for (i=0; i<l; ++i)
         {
-            this.rubik.cubelets[i].matrixAutoUpdate = false;
-            this.rubik.cubelets[i].updateMatrixWorld(true);
-            this.rubik.cubelets[i].position = this.rubik.cubelets[i].matrix.getPosition();
+            self.rubik.cubelets[i].matrixAutoUpdate = false;
+            self.rubik.cubelets[i].updateMatrixWorld(true);
+            self.rubik.cubelets[i].position = self.rubik.cubelets[i].matrix.getPosition();
 
             switch(axis)
             {
                 case "y":
-                        a[i] = [i, this.rubik.cubelets[i].position.y];
+                        a[i] = [i, self.rubik.cubelets[i].position.y];
                         break;
                 case "x":
-                        a[i] = [i, this.rubik.cubelets[i].position.x];
+                        a[i] = [i, self.rubik.cubelets[i].position.x];
                         break;
                 case "z":
-                        a[i] = [i,this.rubik.cubelets[i].position.z];
+                        a[i] = [i, self.rubik.cubelets[i].position.z];
                         break;
                 default: return null;
             }
         }
 
-        a.sort(function(a, b){return a[1] - b[1];});
-        for (i=0; i<result.length; i++)
-            result[i] = a[row * this.rubik.N * this.rubik.N + i][0];
+        a.sort(function(a, b) {return a[1] - b[1];});
+        for (i=0; i<result.length; ++i)
+            result[i] = a[row * self.rubik.N * self.rubik.N + i][0];
 
         return result;
     },
 
     getFacesAsSeen: function(cubelet) {
-        if (!this.rubik || this.rotation_in_progress) return null;
+        var self = this;
+        if (!self.rubik || self.rotation_in_progress) return null;
 
         var c, cl, i, n, m;
         if (cubelet instanceof THREE.Mesh) c = cubelet;
-        else c = this.rubik.cubelets[cubelet || 0];
+        else c = self.rubik.cubelets[cubelet || 0];
 
         if (null == c) return null;
 
@@ -488,7 +603,7 @@ var Rubik = Extends(THREE.Object3D, {
         m = c.matrix.clone();
         m.setPosition(new THREE.Vector3(0,0,0));
 
-        for (i=0; i<cl; i++)
+        for (i=0; i<cl; ++i)
         {
              n.push(m.multiplyVector3(c.geometry.faces[i].normal.clone()).normalize());
         }
@@ -504,11 +619,11 @@ var Rubik = Extends(THREE.Object3D, {
             rightVector = new THREE.Vector3(1,0,0)
         ;
 
-        for (i=0; i<n.length; i++)
+        for (i=0; i<n.length; ++i)
         {
             mat = materials[i];
             matname = mat.name;
-            if (matname.toLowerCase() == "inside")
+            if (matname.toLowerCase() === "inside")
             {
                 /*continue*/;
                 r1["inside"] = mat.color;
@@ -546,7 +661,6 @@ var Rubik = Extends(THREE.Object3D, {
                     r3["back"] = matname;
                     r4["back"] = mat;
                 }
-                // take left-right opposite due to papervision 3d left-right definition on cube etc..?? NO NO
                 if (eq(n[i], leftVector)) // face seen as left
                 {
                     r1["left"] = mat.color;
@@ -567,202 +681,89 @@ var Rubik = Extends(THREE.Object3D, {
     },
 
     getFacesByName: function(cubelet, f) {
-        if (!this.rubik) return [];
+        var self = this;
+        if (!self.rubik) return [];
 
         var c;
         if (cubelet instanceof THREE.Mesh) c = cubelet;
-        else  c = this.rubik.cubelets[cubelet || 0];
+        else c = self.rubik.cubelets[cubelet || 0];
 
         if (null == c) return [];
 
         var result = [], faces = c.geometry.materials, mat = null;
 
-        for (var i=0; i<faces.length; i++)
+        for (var i=0; i<faces.length; ++i)
         {
             mat = faces[i];
-            if (mat.name == f)
+            if (mat.name === f)
                 result.push(mat);
         }
         return result;
     },
 
     getFacesByColor: function(cubelet, col) {
-        if (!this.rubik) return [];
+        var self = this;
+        if (!self.rubik) return [];
 
         var c;
         if (cubelet instanceof THREE.Mesh) c = cubelet;
-        else c = this.rubik.cubelets[cubelet || 0];
+        else c = self.rubik.cubelets[cubelet || 0];
 
         if (null == c) return [];
 
         var result = [], materials = c.geometry.materials, mat = null;
 
-        for (var i=0; i<materials.length; i++)
+        for (var i=0; i<materials.length; ++i)
         {
             mat = materials[i];
-            if (mat.color.getHex() == col)
+            if (mat.color.getHex() === col)
                 result.push(mat);
         }
         return result;
     },
 
-    setRubikColors: function(params) {
-        if (!this.rubik) return;
-        if (this.rotation_in_progress) return;
-
-        var colorsobj = params.colors,
-            faces = null, i, j,
-            cclone = {
-                front: this.rubik.colors.front,
-                back: this.rubik.colors.back,
-                top: this.rubik.colors.top,
-                bottom: this.rubik.colors.bottom,
-                left: this.rubik.colors.left,
-                right: this.rubik.colors.right,
-                inside: this.rubik.colors.inside
-            },
-            cclone2 = {
-                front: this.rubik.colors.front,
-                back: this.rubik.colors.back,
-                top: this.rubik.colors.top,
-                bottom: this.rubik.colors.bottom,
-                left: this.rubik.colors.left,
-                right: this.rubik.colors.right,
-                inside: this.rubik.colors.inside
-            },
-            n, m, allow = true
-        ;
-
-        // don't allow 2 identical colors on different faces
-        for (n in colorsobj)
-            cclone2[n] = colorsobj[n];
-
-        for (n in cclone2)
-        {
-            for (m in cclone2)
-            {
-                if (cclone2[n] == cclone2[m] && n != m)
-                {
-                    allow = false;
-                    return false;
-                    //break;
-                }
-            }
-        }
-
-        //if ( !allow ) return false;
-
-        if (colorsobj != null)
-        {
-            for (i=0; i<this.rubik.cubelets.length; i++)
-            {
-                if (colorsobj.top != null)
-                {
-                    faces = this.getFacesByColor(this.rubik.cubelets[i], cclone.top);
-                    for (j=0; j<faces.length; j++)
-                        if (faces[j].name != "inside")
-                            faces[j].color.setHex(colorsobj.top);
-                    this.rubik.colors.top = colorsobj.top;
-                }
-                if (colorsobj.bottom != null)
-                {
-                    faces = this.getFacesByColor(this.rubik.cubelets[i], cclone.bottom);
-                    for (j=0; j<faces.length; j++)
-                        if (faces[j].name != "inside")
-                            faces[j].color.setHex(colorsobj.bottom);
-                    this.rubik.colors.bottom = colorsobj.bottom;
-                }
-                if (colorsobj.left != null)
-                {
-                    faces = this.getFacesByColor(this.rubik.cubelets[i], cclone.left);
-                    for (j=0; j<faces.length; j++)
-                        if (faces[j].name != "inside")
-                            faces[j].color.setHex(colorsobj.left);
-                    this.rubik.colors.left = colorsobj.left;
-                }
-                if (colorsobj.right != null)
-                {
-                    faces = this.getFacesByColor(this.rubik.cubelets[i], cclone.right);
-                    for (j=0; j<faces.length; j++)
-                        if (faces[j].name != "inside")
-                            faces[j].color.setHex(colorsobj.right);
-                    this.rubik.colors.right = colorsobj.right;
-                }
-                if (colorsobj.front != null)
-                {
-                    faces = this.getFacesByColor(this.rubik.cubelets[i], cclone.front);
-                    for (j=0; j<faces.length; j++)
-                        if (faces[j].name != "inside")
-                            faces[j].color.setHex(colorsobj.front);
-                    this.rubik.colors.front = colorsobj.front;
-                }
-                if (colorsobj.back != null)
-                {
-                    faces = this.getFacesByColor(this.rubik.cubelets[i], cclone.back);
-                    for (j=0; j<faces.length; j++)
-                        if (faces[j].name != "inside")
-                            faces[j].color.setHex(colorsobj.back);
-                    this.rubik.colors.back = colorsobj.back;
-                }
-                if (colorsobj.inside != null)
-                {
-                    faces = this.getFacesByName(this.rubik.cubelets[i], "inside"); // this take by name so to avoid mixed ups
-                    for (j=0; j<faces.length; j++)
-                        faces[j].color.setHex(colorsobj.inside);
-                    this.rubik.colors.inside = colorsobj.inside;
-                }
-            }
-
-            params.colors = cclone;
-            this.addHistory({func:this.setRubikColors, param:params, actiontype:"setRubikColors"});
-
-            if (this.onChange) this.onChange.call(this);
-
-            return true;
-        }
-    },
-
     getFaceColorAndIndex: function(seenface, ii, jj) {
-        if (!this.rubik || this.rotation_in_progress) return null;
+        var self = this;
+        if (!self.rubik || self.rotation_in_progress) return null;
 
         var i, res,
-            cubes = this.rubik.cubelets,
+            cubes = self.rubik.cubelets,
             obj, cubeletseenas
         ;
 
-        for (i=0; i<cubes.length; i++)
+        for (i=0; i<cubes.length; ++i)
         {
-            obj = this.getFacesAsSeen(cubes[i]);
-            cubeletseenas = this.getCubeletSeenCoords(cubes[i]);
+            obj = self.getFacesAsSeen(cubes[i]);
+            cubeletseenas = self.getCubeletSeenCoords(cubes[i]);
 
             if (obj.seencolor[seenface] != null && obj.seencolor[seenface] != null)
             {
                 switch (seenface)
                 {
                     case "top":
-                            if (cubeletseenas.xx == jj && cubeletseenas.zz == ii)
-                                return({color:obj.seencolor[seenface]/*,index:this.rubik.faces.indexOf(obj.mat[seenface])*/});
-                            break;
+                        if (cubeletseenas.xx === jj && cubeletseenas.zz === ii)
+                            return ({color:obj.seencolor[seenface]/*,index:this.rubik.faces.indexOf(obj.mat[seenface])*/});
+                    break;
                     case "bottom":
-                            if (cubeletseenas.xx == jj && cubeletseenas.zz == this.rubik.N-1-ii)
-                                return({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
-                            break;
+                        if (cubeletseenas.xx === jj && cubeletseenas.zz === self.rubik.N-1-ii)
+                            return ({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
+                    break;
                     case "left":
-                            if (cubeletseenas.yy == this.rubik.N-1-ii && cubeletseenas.zz == this.rubik.N-1-jj)
-                                return({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
-                            break;
+                        if (cubeletseenas.yy === self.rubik.N-1-ii && cubeletseenas.zz == self.rubik.N-1-jj)
+                            return ({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
+                    break;
                     case "right":
-                            if (cubeletseenas.yy == this.rubik.N-1-ii && cubeletseenas.zz == jj)
-                                return({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
-                            break;
+                        if (cubeletseenas.yy === self.rubik.N-1-ii && cubeletseenas.zz === jj)
+                            return ({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
+                    break;
                     case "front":
-                            if (cubeletseenas.xx == jj && cubeletseenas.yy == this.rubik.N-1-ii)
-                                return({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
-                            break;
+                        if (cubeletseenas.xx === jj && cubeletseenas.yy === self.rubik.N-1-ii)
+                            return ({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
+                    break;
                     case "back":
-                            if (cubeletseenas.xx == this.rubik.N-1-jj && cubeletseenas.yy == this.rubik.N-1-ii)
-                                return({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
-                            break;
+                        if (cubeletseenas.xx === self.rubik.N-1-jj && cubeletseenas.yy === self.rubik.N-1-ii)
+                            return ({color:obj.seencolor[seenface]/*,index:rubik.faces.indexOf(obj.mat[seenface])*/});
+                    break;
                 }
             }
         }
@@ -770,29 +771,11 @@ var Rubik = Extends(THREE.Object3D, {
     },
 
     getFlatImage: function(el)  {
-        if (!this.rubik || this.rotation_in_progress) return;
+        var self = this;
+        if (!self.rubik || self.rotation_in_progress) return;
 
         var innerHTML = '';
-        var N = this.rubik.N;
-        /*var w=15;
-        var h=15;
-        var ds=8;
-        var fd=15;
-        var fw=N*(w+ds);
-        var fh=N*(h+ds);
-        var i,j;
-        var a,b;
-        var obj;*/
-        /*if (width>0)
-        {
-            var dsp:Number=ds/w;
-            w=width/(4+4*dsp+N);
-            h=w;
-            ds=w*dsp;
-            fd=w;
-            fw=N*(w+ds);
-            fh=N*(h+ds);
-        }*/
+        var N = self.rubik.N;
         var i, j,
             w = 5,
             h = 5,
@@ -801,154 +784,298 @@ var Rubik = Extends(THREE.Object3D, {
             xx, yy
         ;
 
-        //a=fw+fd;
-        //b=0;
         var flat = {
             top: [],
             bottom: [],
             front: [],
             back: [],
             left: [],
-            right: []
+            right: [],
+            html: ''
         };
 
         // top
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
-                obj = this.getFaceColorAndIndex("top", j, N-1-i);
+                obj = self.getFaceColorAndIndex("top", j, N-1-i);
                 flat.top[j+i*N] = obj.color.getHex();
             }
         }
         // top
         xx = N*(w+dd)+ddd;
         yy = 0;
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
                 innerHTML += makecolorsquare(flat.top[i+(N-1-j)*N], w, h, (yy+i*(h+dd)), (xx+j*(w+dd)));
             }
         }
 
-        //a=0;
-        //b=fh+fd;
         // left
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
-                obj = this.getFaceColorAndIndex("left",j,N-1-i);
+                obj = self.getFaceColorAndIndex("left",j,N-1-i);
                 flat.left[j+i*N] = obj.color.getHex();
             }
         }
         // left
         xx = 0;
         yy = N*(h+dd)+ddd;
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
                 innerHTML += makecolorsquare(flat.left[i+(j)*N], w, h, (yy+i*(h+dd)), (xx+j*(w+dd)));
             }
         }
 
-        //a=fw+fd;
-        //b=fh+fd;
         // front
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
-                obj = this.getFaceColorAndIndex("front",j,N-1-i);
+                obj = self.getFaceColorAndIndex("front",j,N-1-i);
                 flat.front[j+i*N] = obj.color.getHex();
             }
         }
         // front
         xx = N*(w+dd)+ddd;
         yy = N*(h+dd)+ddd;
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
                 innerHTML += makecolorsquare(flat.front[i+(N-1-j)*N], w, h, (yy+i*(h+dd)), (xx+j*(w+dd)));
             }
         }
 
-        //a=2*(fw+fd);
-        //b=fh+fd;
         // right
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
-                obj = this.getFaceColorAndIndex("right",j,N-1-i);
+                obj = self.getFaceColorAndIndex("right",j,N-1-i);
                 flat.right[j+i*N] = obj.color.getHex();
             }
         }
         // right
         xx = 2*(N*(w+dd)+ddd);
         yy = N*(h+dd)+ddd;
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
                 innerHTML += makecolorsquare(flat.right[i+(j)*N],w,h,(yy+i*(h+dd)),(xx+j*(w+dd)));
             }
         }
 
-        //a=3*(fw+fd);
-        //b=fh+fd;
         // back
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
-                obj = this.getFaceColorAndIndex("back",j,N-1-i);
+                obj = self.getFaceColorAndIndex("back",j,N-1-i);
                 flat.back[j+i*N] = obj.color.getHex();
             }
         }
         // back
         xx = 3*(N*(w+dd)+ddd);
         yy = N*(h+dd)+ddd;
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
                 innerHTML += makecolorsquare(flat.back[i+(N-1-j)*N],w,h,(yy+i*(h+dd)),(xx+j*(w+dd)));
             }
         }
 
-        //a=fw+fd;
-        //b=2*(fh+fd);
         // bottom
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
-                obj = this.getFaceColorAndIndex("bottom",j,N-1-i);
+                obj = self.getFaceColorAndIndex("bottom",j,N-1-i);
                 flat.bottom[j+i*N] = obj.color.getHex();
             }
         }
         // bottom
         xx = N*(w+dd)+ddd;
         yy = 2*(N*(h+dd)+ddd);
-        for (i=0; i<N; i++)
+        for (i=0; i<N; ++i)
         {
-            for (j=0; j<N; j++)
+            for (j=0; j<N; ++j)
             {
                 innerHTML += makecolorsquare(flat.bottom[i+(N-1-j)*N],w,h,(yy+i*(h+dd)),(xx+j*(w+dd)));
             }
         }
-        //callback.call(this,flat);
-        el.style.width = String(((w+dd)*N+ddd)*4+10)+'px';
-        el.style.height = String(((h+dd)*N+ddd)*3+10)+'px';
-        el.innerHTML = innerHTML;
+        flat.html = innerHTML;
+        if (el)
+        {
+            el.style.width = String(((w+dd)*N+ddd)*4+10)+'px';
+            el.style.height = String(((h+dd)*N+ddd)*3+10)+'px';
+            el.innerHTML = innerHTML;
+        }
         return flat;
+    },
+
+    getCubelet: function(camera, x, y, asseen) {
+        var self = this,
+            vector = new THREE.Vector3(x, y, 1),
+            projector = new THREE.Projector(),
+            ray, intersects, cubelet, faces, cubeletseenas;
+        projector.unprojectVector(vector, camera);
+        ray = new THREE.Ray(camera.position, vector.subSelf(camera.position).normalize());
+        intersects = ray.intersectObjects(self.children);
+        cubelet = 0 < intersects.length ? {cubelet:intersects[0].object, face:intersects[0].face, ray:ray, vector:vector, seenas:null} : null;
+        if (cubelet && asseen && (faces = self.getFacesAsSeen(cubelet.cubelet)))
+        {
+            cubeletseenas = self.getCubeletSeenCoords(cubelet.cubelet);
+            cubelet.seenas = {
+                name: faces.faceseenas[cubelet.cubelet.geometry.materials[cubelet.face.materialIndex].name],
+                xx: cubeletseenas.xx,
+                yy: cubeletseenas.yy,
+                zz: cubeletseenas.zz
+            };
+        }
+        return cubelet;
+    },
+
+    getRotation: function(start_cubelet, end_cubelet) {
+        if (!start_cubelet.seenas || !end_cubelet.seenas || start_cubelet.seenas.name !== end_cubelet.seenas.name) return;
+        var self = this, N = self.rubik.N, angle = -1,
+            start = start_cubelet.seenas, end = end_cubelet.seenas,
+            inrange = function inrange(val, min, max, inclusive) {
+                return true === inclusive ? ((min <= val) && (val <= max)) : ((min < val) && (val < max));
+            };
+        //console.log(start.name, start.xx, start.yy, start.zz);
+        //console.log(end.name, end.xx, end.yy, end.zz);
+        switch (start.name)
+        {
+            case 'right':
+            case 'left':
+                if (inrange(start.yy, 0, N-1) && inrange(end.yy, 0, N-1))
+                {
+                    if ('left' === start.name) angle = -angle;
+                    if (end.zz < start.zz) angle = -angle;
+                    return {axis:"y", row:start.yy, angle:angle};
+                }
+                else if (inrange(start.zz, 0, N-1) && inrange(end.zz, 0, N-1))
+                {
+                    if ('right' === start.name) angle = -angle;
+                    if (end.yy < start.yy) angle = -angle;
+                    return {axis:"z", row:start.zz, angle:angle};
+                }
+                else if ((start.yy === N-1) && (end.yy === N-1))
+                {
+                    angle = -angle;
+                    if (end.zz < start.zz) angle = -angle;
+                    return {axis:"x", row:start.xx, angle:angle};
+                }
+                else if ((start.yy === 0) && (end.yy === 0))
+                {
+                    angle = -angle;
+                    if (end.zz < start.zz) angle = -angle;
+                    return {axis:"x", row:start.xx, angle:-angle};
+                }
+                else if ((start.zz === 0) && (end.zz === 0))
+                {
+                    angle = -angle;
+                    if (end.yy < start.yy) angle = -angle;
+                    return {axis:"x", row:start.xx, angle:angle};
+                }
+                else if ((start.zz === N-1) && (end.zz === N-1))
+                {
+                    angle = -angle;
+                    if (end.yy < start.yy) angle = -angle;
+                    return {axis:"x", row:start.xx, angle:-angle};
+                }
+            break;
+
+            case 'top':
+            case 'bottom':
+                if (inrange(start.zz, 0, N-1) && inrange(end.zz, 0, N-1))
+                {
+                    if ('bottom' === start.name) angle = -angle;
+                    if (end.xx < start.xx) angle = -angle;
+                    return {axis:"z", row:start.zz, angle:angle};
+                }
+                else if (inrange(start.xx, 0, N-1) && inrange(end.xx, 0, N-1))
+                {
+                    if ('bottom' === start.name) angle = -angle;
+                    if (end.zz < start.zz) angle = -angle;
+                    return {axis:"x", row:start.xx, angle:-angle};
+                }
+                else if ((start.zz === N-1) && (end.zz === N-1))
+                {
+                    if (end.xx < start.xx) angle = -angle;
+                    return {axis:"y", row:start.yy, angle:-angle};
+                }
+                else if ((start.zz === 0) && (end.zz === 0))
+                {
+                    if (end.xx < start.xx) angle = -angle;
+                    return {axis:"y", row:start.yy, angle:angle};
+                }
+                else if ((start.xx === N-1) && (end.xx === N-1))
+                {
+                    angle = -angle;
+                    if (end.zz < start.zz) angle = -angle;
+                    return {axis:"y", row:start.yy, angle:-angle};
+                }
+                else if ((start.xx === 0) && (end.xx === 0))
+                {
+                    angle = -angle;
+                    if (end.zz < start.zz) angle = -angle;
+                    return {axis:"y", row:start.yy, angle:angle};
+                }
+            break;
+
+            case 'back':
+            case 'front':
+                if (inrange(start.yy, 0, N-1) && inrange(end.yy, 0, N-1))
+                {
+                    if ('back' === start.name) angle = -angle;
+                    if (end.xx < start.xx) angle = -angle;
+                    return {axis:"y", row:start.yy, angle:-angle};
+                }
+                else if (inrange(start.xx, 0, N-1) && inrange(end.xx, 0, N-1))
+                {
+                    if ('back' === start.name) angle = -angle;
+                    if (end.yy < start.yy) angle = -angle;
+                    return {axis:"x", row:start.xx, angle:angle};
+                }
+                else if ((start.yy === N-1) && (end.yy === N-1))
+                {
+                    angle = -angle;
+                    if (end.xx < start.xx) angle = -angle;
+                    return {axis:"z", row:start.zz, angle:-angle};
+                }
+                else if ((start.yy === 0) && (end.yy === 0))
+                {
+                    angle = -angle;
+                    if (end.xx < start.xx) angle = -angle;
+                    return {axis:"z", row:start.zz, angle:angle};
+                }
+                else if ((start.xx === N-1) && (end.xx === N-1))
+                {
+                    if (end.yy < start.yy) angle = -angle;
+                    return {axis:"z", row:start.zz, angle:-angle};
+                }
+                else if ((start.xx === 0) && (end.xx === 0))
+                {
+                    if (end.yy < start.yy) angle = -angle;
+                    return {axis:"z", row:start.zz, angle:angle};
+                }
+            break;
+        }
     }
 });
 
 // export it
+Rubik.VERSION = "1.1.0";
 window.Rubik = Rubik;
 })(window);

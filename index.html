@@ -533,6 +533,7 @@ function animate()
     camera.position.y = rad * stdMath.sin(targetRotationX * multx);
     camera.position.z = rad * stdMath.cos(targetRotationY * multy) * stdMath.cos(targetRotationX * multx);
     camera.lookAt(scene.position);
+    Tween.tick();
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }

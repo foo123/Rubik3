@@ -28,18 +28,34 @@ var VERSION = "1.0.0",
     INF = Infinity,
     def = Object.defineProperty,
     HAS = Object[proto].hasOwnProperty,
-    toString = Object[proto].toString;
+    toString = Object[proto].toString,
+    perf = ("undefined" !== typeof global) && ('[object global]' === toString.call(global)) ? require('node:perf_hooks').performance : performance
+;
 
-function Tween(obj, fps)
+var tweens = [];
+function tick()
 {
-    if (!(this instanceof Tween)) return new Tween(obj, fps);
-    var self = this, tween, timer, animate, stopped = false;
+    if (tweens.length)
+    {
+        var now = perf.now();
+        tweens = tweens.reduce(function(tweens, tween) {
+            tween.tick(now);
+            if (tween.finished()) tween.dequeue();
+            else tweens.push(tween);
+            return tweens;
+        }, []);
+    }
+}
 
-    fps = fps || 60;
+function Tween(obj)
+{
+    if (!(this instanceof Tween)) return new Tween(obj);
+    var self = this, fps = 60, tween, timer, tick, stopped = false, enqueued = false;
+
     if (is_obj(obj)) tween = [];
     else obj = null;
 
-    animate = function() {
+    tick = function(now) {
         if (!tween || !tween.length)
         {
             if (timer)
@@ -49,25 +65,33 @@ function Tween(obj, fps)
             }
             return;
         }
+        if (null == now) now = perf.now();
         var completed = 0;
         tween.forEach(function(tween) {
-            if (stopped) return;
-            if (tween.frame > tween.frames)
+            if (stopped)
+            {
+                return;
+            }
+            if (null == tween.startoftime)
+            {
+                tween.startoftime = now;
+            }
+            if (tween.time > tween.time1)
             {
                 ++completed;
                 return;
             }
-            else if (tween.frame < tween.frame0)
+            tween.time = now - tween.startoftime;
+            if (tween.time < tween.time0)
             {
-                ++tween.frame;
                 return;
             }
 
             var kframes = tween.keyframes.length,
-                frames = tween.frames,
                 kframe = tween.keyframe,
-                frame = tween.frame,
-                frame0 = tween.frame0,
+                time = tween.time,
+                time0 = tween.time0,
+                time1 = tween.time1,
                 kf, t;
             while (kframe < kframes)
             {
@@ -75,9 +99,9 @@ function Tween(obj, fps)
                 {
                     kf = tween.keyframes[kframes - 1 - kframe];
                     if (
-                        (frames - 1 - kf.frame < frame) &&
+                        (time1 - kf.time < time) &&
                         (kframe+1 < kframes) &&
-                        (frames - 1 - tween.keyframes[kframes - 1 - kframe - 1].frame < frame)
+                        (time1 - tween.keyframes[kframes - 1 - kframe - 1].time < time)
                     )
                     {
                         ++kframe;
@@ -91,9 +115,9 @@ function Tween(obj, fps)
                 {
                     kf = tween.keyframes[kframe];
                     if (
-                        (kf.frame < frame) &&
+                        (kf.time < time) &&
                         (kframe+1 < kframes) &&
-                        (tween.keyframes[kframe+1].frame < frame)
+                        (tween.keyframes[kframe+1].time < time)
                     )
                     {
                         ++kframe;
@@ -105,27 +129,41 @@ function Tween(obj, fps)
                 }
             }
             tween.keyframe = kframe;
-            ++tween.frame;
 
-            t = clamp(1 < frames - frame0 ? (frame - frame0) / (frames - 1 - frame0) : 1, 0, 1);
-            t = tween.easing(0 > tween.dir ? (1 - t) : t);
+            t = clamp(0 < time1 - time0 ? (time - time0) / (time1 - time0) : 1, 0, 1);
+            if (0 > tween.dir)
+            {
+                if (0 > tween.easingdir)
+                {
+                    t = 1 - tween.easing(t);
+                }
+                else
+                {
+                    t = tween.easing(1 - t);
+                }
+            }
+            else
+            {
+                t = tween.easing(t);
+            }
             if (1 < kframes) t = (kframes)*(t - kframe/(kframes));
             obj[tween.prop] = kf.path(t);
 
-            if ((frame0 === frame) && tween.start)
+            if ((time >= time0) && !tween.started)
             {
-                tween.start(obj, self);
+                tween.started = true;
+                if (tween.start) tween.start(obj, self);
             }
             if (tween.progress)
             {
                 tween.progress(obj, self);
             }
-            if ((frame+1 >= frames) && tween.end)
+            if (time >= time1)
             {
-                tween.frame = frames+1;
-                tween.end(obj, self);
+                tween.time = time1+1;
+                if (tween.end) tween.end(obj, self);
             }
-            if (tween.frame > tween.frames)
+            if (tween.time > tween.time1)
             {
                 ++completed;
             }
@@ -162,19 +200,19 @@ function Tween(obj, fps)
                 easing = is_callable(easing) ? easing : Tween.Easing.linear;
                 delay = stdMath.max(0, (+delay) || 0);
                 duration = stdMath.max(0, (+duration) || 0);
-                var frames = stdMath.ceil((duration + delay) * fps / 1000),
-                    frame0 = stdMath.round(delay * fps / 1000);
+                var time1 = duration + delay,
+                    time0 = delay;
                 keyframes = Object.keys(keyframes).map(function(key) {
                     var path = keyframes[key];
                     return {
-                        frame: frame0 + stdMath.round(clamp(parseFloat(key.split('-')[0].trim()) || 0, 0, 100) * (frames - 1 - frame0) / 100),
+                        time: time0 + clamp(parseFloat(key.split('-')[0].trim()) || 0, 0, 100) * (time1 - time0) / 100,
                         path: is_callable(path) ? path : (is_obj(path) && HAS.call(path, 'from') && HAS.call(path, 'to') ? line(path['from'], path['to']) : path)
                     };
                 }).sort(function(kf1, kf2) {
-                    return kf1.frame - kf2.frame;
+                    return kf1.time - kf2.time;
                 });
                 keyframes = keyframes.reduce(function(kframes, kf, i) {
-                    if (kf.frame < frames-1)
+                    if (kf.time < time1)
                     {
                         if (!is_callable(kf.path))
                         {
@@ -204,10 +242,13 @@ function Tween(obj, fps)
                         delay: delay,
                         easing: easing,
                         dir: 1,
-                        frames: frames,
-                        frame0: frame0,
-                        frame: 0,
+                        easingdir: 1,
+                        startoftime: null,
+                        time0: time0,
+                        time1: time1,
+                        time: 0,
                         keyframe: 0,
+                        started: false,
                         start: opts && is_callable(opts.onStart) ? opts.onStart : null,
                         progress: opts && is_callable(opts.onProgress) ? opts.onProgress : null,
                         end: opts && is_callable(opts.onEnd) ? opts.onEnd : null
@@ -220,6 +261,10 @@ function Tween(obj, fps)
     self.start = function(immediately) {
         if (tween && tween.length)
         {
+            if (enqueued)
+            {
+                return self;
+            }
             if (timer)
             {
                 clearInterval(timer);
@@ -227,9 +272,29 @@ function Tween(obj, fps)
             }
             self.rewind();
             stopped = false;
-            if ("immediately" === immediately) animate();
-            timer = setInterval(animate, 1000 / fps);
+            if ("immediately" === immediately) tick();
+            timer = setInterval(function() {tick();}, 1000 / fps);
         }
+        return self;
+    };
+    self.enqueue = function() {
+        if (tween && tween.length)
+        {
+            if (timer)
+            {
+                clearInterval(timer);
+                timer = null;
+            }
+            if (!enqueued)
+            {
+                enqueued = true;
+                tweens.push(self);
+            }
+        }
+        return self;
+    };
+    self.dequeue = function() {
+        enqueued = false;
         return self;
     };
     self.stop = function(stop) {
@@ -266,11 +331,13 @@ function Tween(obj, fps)
         }
         return self;
     };
-    self.reverse = function() {
+    self.reverse = function(opts) {
         if (tween && tween.length)
         {
+            opts = opts || {};
             tween.forEach(function(tween) {
                 tween.dir = -tween.dir;
+                tween.easingdir = opts.easing ? -1 : 1;
             });
         }
         return self;
@@ -280,7 +347,9 @@ function Tween(obj, fps)
         {
             tween.forEach(function(tween) {
                 tween.keyframe = 0;
-                tween.frame = 0;
+                tween.time = 0;
+                tween.startoftime = null;
+                tween.started = false;
             });
         }
         return self;
@@ -289,20 +358,33 @@ function Tween(obj, fps)
         if (!self.finished())
         {
             stopped = false;
-            if (!timer) timer = setInterval(animate, 1000 / fps);
+            if (!enqueued && !timer) timer = setInterval(function() {tick();}, 1000 / fps);
         }
         return self;
     };
     self.update = function() {
         // manual updating
-        if (tween && tween.length && !stopped) animate();
+        if (tween && tween.length && !stopped && !enqueued) tick();
+        return self;
+    };
+    self.tick = function(now) {
+        // enqueued updating
+        if (tween && tween.length && !stopped) tick(now);
         return self;
     };
     self.finished = function() {
-        return 0 === (tween || []).filter(function(tween) {return tween.frame <= tween.frames;}).length;
+        return 0 === (tween || []).filter(function(tween) {return tween.time <= tween.time1;}).length;
     };
-    self.fps = function() {
-        return fps;
+    self.fps = function(new_fps) {
+        if (arguments.length)
+        {
+            fps = new_fps;
+            return self;
+        }
+        else
+        {
+            return fps;
+        }
     };
 }
 Tween[proto] = {
@@ -310,6 +392,8 @@ Tween[proto] = {
     dispose: null,
     animate: null,
     start: null,
+    enqueue: null,
+    dequeue: null,
     stop: null,
     initialize: null,
     finalize: null,
@@ -317,9 +401,16 @@ Tween[proto] = {
     rewind: null,
     resume: null,
     update: null,
+    tick: null,
     finished: null,
     fps: null
 };
+def(Tween, 'tick', {
+    get: function() {return tick;},
+    set: function() {},
+    enumerable: true,
+    configurable: false
+});
 
 // https://easings.net/
 function ease_out_bounce(t)

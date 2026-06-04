@@ -335,7 +335,7 @@ var Rubik = Extends(THREE.Object3D, {
                     axis: axis,
                     angle: 0,
                     prevangle: 0
-                }, 60).animate('angle', {from:0, to:rangle}, duration, 0, 'ease-in-out-expo', {
+                }).animate('angle', {from:0, to:rangle}, duration, 0, 'ease-in-out-expo', {
                 onProgress: function(obj) {
                     var m = new THREE.Matrix4(), a = obj.angle-obj.prevangle;
                     obj.prevangle = obj.angle;
@@ -367,7 +367,7 @@ var Rubik = Extends(THREE.Object3D, {
                         if (self.onChange)     self.onChange.call(self);
                     }
                 }
-                }).start();
+                }).enqueue();
             }
 
             params.angle = -angle;

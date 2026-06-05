@@ -379,8 +379,8 @@ function onDocumentDown(event, isTouch)
 {
     event.preventDefault();
 
-    var clientX = isTouch ? event.touches[0].clientX : event.clientX,
-        clientY = isTouch ? event.touches[0].clientY : event.clientY,
+    var clientX = isTouch ? event.changedTouches[0].clientX : event.clientX,
+        clientY = isTouch ? event.changedTouches[0].clientY : event.clientY,
         offset, target;
 
     offset = recursive_offset(event.target);
@@ -436,8 +436,8 @@ function onDocumentTouchMove(event)
 }
 function onDocumentMove(event, isTouch)
 {
-    var clientX = isTouch ? event.touches[0].clientX : event.clientX,
-        clientY = isTouch ? event.touches[0].clientY : event.clientY,
+    var clientX = isTouch ? event.changedTouches[0].clientX : event.clientX,
+        clientY = isTouch ? event.changedTouches[0].clientY : event.clientY,
         offset;
 
     if (isCubeRotation)
@@ -468,8 +468,8 @@ function onDocumentTouchEnd(event)
 }
 function onDocumentUp(event, isTouch)
 {
-    var clientX = isTouch ? event.touches[0].clientX : event.clientX,
-        clientY = isTouch ? event.touches[0].clientY : event.clientY,
+    var clientX = isTouch ? event.changedTouches[0].clientX : event.clientX,
+        clientY = isTouch ? event.changedTouches[0].clientY : event.clientY,
         offset;
 
     if (isCubeRotation)

@@ -7,7 +7,7 @@ Rubik3
 
 [![Rubik3 with Three.js Application](/screenshot.png)](https://foo123.github.io/examples/rubik3/)
 
-13kB minified
+13 kB minified
 
 ### Live Example
 * [3D Rubik](https://foo123.github.io/examples/rubik3/)
